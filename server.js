@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 const PORT = 3000;
 
+app.use(express.json());
+
 // In-memory tasks
 const tasks = [
     {
@@ -56,6 +58,27 @@ app.get("/tasks/:id", (req, res) => {
     }
 
     res.json(task);
+});
+
+// Create a new task
+app.post("/tasks", (req, res) => {
+    const { title } = req.body;
+
+    if (!title || title.trim() === "") {
+        return res.status(400).json({
+            error: "Title is required"
+        });
+    }
+
+    const newTask = {
+        id: tasks.length + 1,
+        title: title.trim(),
+        done: false
+    };
+
+    tasks.push(newTask);
+
+    res.status(201).json(newTask);
 });
 
 // Start server
