@@ -3,7 +3,7 @@
   "info": {
     "title": "Task API",
     "version": "1.0.0",
-    "description": "A simple CRUD API for managing tasks"
+    "description": "Task CRUD API with Supabase authentication, JWT protection, PostgreSQL and Swagger UI"
   },
   "servers": [
     {
@@ -21,6 +21,7 @@
         }
       }
     },
+
     "/health": {
       "get": {
         "summary": "Health check",
@@ -31,6 +32,133 @@
         }
       }
     },
+
+    "/public/info": {
+      "get": {
+        "summary": "Get public information",
+        "description": "This endpoint does not require authentication.",
+        "responses": {
+          "200": {
+            "description": "Public information"
+          }
+        }
+      }
+    },
+
+    "/auth/signup": {
+      "post": {
+        "summary": "Create a new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Signup successful"
+          },
+          "400": {
+            "description": "Invalid signup request"
+          }
+        }
+      }
+    },
+
+    "/auth/login": {
+      "post": {
+        "summary": "Login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful. Returns access and refresh tokens."
+          },
+          "400": {
+            "description": "Email and password are required"
+          },
+          "401": {
+            "description": "Invalid login credentials"
+          }
+        }
+      }
+    },
+
+    "/auth/logout": {
+      "post": {
+        "summary": "Logout",
+        "description": "Logs out the authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Logout successful"
+          },
+          "401": {
+            "description": "Authorization token required or invalid"
+          },
+          "500": {
+            "description": "Logout failed"
+          }
+        }
+      }
+    },
+
+    "/protected/profile": {
+      "get": {
+        "summary": "Get authenticated user profile",
+        "description": "Returns basic information about the authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user information"
+          },
+          "401": {
+            "description": "Authorization token required or invalid"
+          }
+        }
+      }
+    },
+
+    "/protected/dashboard": {
+      "get": {
+        "summary": "Get protected dashboard",
+        "description": "Returns dashboard information for the authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard information"
+          },
+          "401": {
+            "description": "Authorization token required or invalid"
+          }
+        }
+      }
+    },
+
     "/tasks": {
       "get": {
         "summary": "Get all tasks",
@@ -62,6 +190,7 @@
         }
       }
     },
+
     "/tasks/{id}": {
       "get": {
         "summary": "Get a task by ID",
@@ -79,6 +208,7 @@
           }
         }
       },
+
       "put": {
         "summary": "Update a task",
         "parameters": [
@@ -108,6 +238,7 @@
           }
         }
       },
+
       "delete": {
         "summary": "Delete a task",
         "parameters": [
@@ -126,7 +257,17 @@
       }
     }
   },
+
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your Supabase access token"
+      }
+    },
+
     "parameters": {
       "TaskId": {
         "name": "id",
@@ -137,7 +278,28 @@
         }
       }
     },
+
     "schemas": {
+      "AuthCredentials": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "your-password"
+          }
+        }
+      },
+
       "Task": {
         "type": "object",
         "properties": {
@@ -152,6 +314,7 @@
           }
         }
       },
+
       "NewTask": {
         "type": "object",
         "required": [
@@ -160,9 +323,14 @@
         "properties": {
           "title": {
             "type": "string"
+          },
+          "done": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
+
       "UpdateTask": {
         "type": "object",
         "properties": {
