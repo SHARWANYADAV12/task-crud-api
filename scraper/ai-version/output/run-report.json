@@ -1,0 +1,15 @@
+{
+  "start_time": "2026-09-25T20:42:23.403Z",
+  "duration_seconds": 1.25,
+  "pages_fetched": 0,
+  "cache_hits": 63,
+  "valid_records": 60,
+  "invalid_records": 0,
+  "failed_pages": [
+    {
+      "url": "https://books.toscrape.com/catalogue/ai-rematch-404-test/index.html",
+      "stage": "failure-test",
+      "error": "HTTP_404"
+    }
+  ]
+}
