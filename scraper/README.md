@@ -1,40 +1,53 @@
 # A9 — The Polite Scraper
 
+A small, cache-aware Node.js scraper built for the FlyRank Backend AI Engineering internship.
+
+The scraper discovers the first three catalogue pages on Books to Scrape, visits the linked book detail pages, extracts structured data, validates the records, handles failures, and writes a run report.
+
 ## Target Classification
 
 ### Target
+
 Books to Scrape:
+
 https://books.toscrape.com/
 
-Books to Scrape is a public practice sandbox created for learning and practicing web scraping.
+Books to Scrape is a public practice sandbox intended for learning and practicing web scraping.
 
 ### Scope
-This scraper will collect data only from the first 3 catalogue pages and their 60 book detail pages.
 
-### Data collected
-For each book, the scraper will collect:
+This scraper is intentionally limited to:
 
-- title
-- product_url
-- price_text
-- availability_text
-- rating_text
-- description
-- source_page
-- fetched_at
+- the first 3 catalogue pages
+- 20 books per catalogue page
+- 60 unique book detail pages
 
-The cleaned records will also contain a numeric `price_gbp` field.
+It does not crawl the entire website.
 
-### Robots check
+### Robots Check
+
 I requested:
 
 https://books.toscrape.com/robots.txt
 
-The server returned `404 Not Found`, so no robots file was found.
+The server returned:
+
+`404 Not Found`
+
+Therefore, no robots.txt file was found.
 
 A missing robots.txt file is not treated as permission to scrape other websites.
 
-### Why this scope is appropriate
-Books to Scrape is specifically provided as a practice sandbox for learning web scraping, so this assignment limits collection to the first three catalogue pages and the linked book pages.
+## Project Structure
 
-I will not reuse this code on another site without checking its rules and terms first.
+```text
+scraper/
+├── cache/
+├── output/
+│   ├── books.json
+│   ├── errors.json
+│   └── run-report.json
+├── src/
+│   └── index.js
+├── .gitignore
+└── README.md
