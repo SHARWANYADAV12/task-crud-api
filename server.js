@@ -79,7 +79,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 
-// ==================== STAGE 2: PUBLIC + PROTECTED ROUTES ====================
+// ==================== STAGE 4: AUTH MIDDLEWARE + LOGOUT ====================
 
 // Public route
 app.get("/public/info", (req, res) => {
@@ -90,8 +90,8 @@ app.get("/public/info", (req, res) => {
 });
 
 
-// Protected profile route with JWT verification
-app.get("/protected/profile", async (req, res) => {
+// Reusable authentication middleware
+const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -116,15 +116,49 @@ app.get("/protected/profile", async (req, res) => {
         });
     }
 
-    return res.status(200).json({
+    req.user = data.user;
+    next();
+};
+
+
+// Protected profile route
+app.get("/protected/profile", authMiddleware, (req, res) => {
+    res.status(200).json({
         message: "Authenticated user",
         user: {
-            id: data.user.id,
-            email: data.user.email,
-            created_at: data.user.created_at
+            id: req.user.id,
+            email: req.user.email,
+            created_at: req.user.created_at
         }
     });
 });
+
+
+// Protected dashboard route
+app.get("/protected/dashboard", authMiddleware, (req, res) => {
+    res.status(200).json({
+        message: "Welcome to your dashboard",
+        user: {
+            id: req.user.id,
+            email: req.user.email
+        }
+    });
+});
+
+
+// Protected logout route
+app.post("/auth/logout", authMiddleware, async (req, res) => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+        return res.status(500).json({
+            error: "Logout failed"
+        });
+    }
+
+    return res.status(204).send();
+});
+
 
 // ==================== POSTGRESQL ====================
 
@@ -132,6 +166,7 @@ app.get("/protected/profile", async (req, res) => {
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL
 });
+
 
 // Initialize database
 async function initializeDatabase() {
@@ -178,12 +213,14 @@ app.get("/", (req, res) => {
     });
 });
 
+
 // Health endpoint
 app.get("/health", (req, res) => {
     res.json({
         status: "ok"
     });
 });
+
 
 // Get all tasks
 app.get("/tasks", async (req, res) => {
@@ -200,6 +237,7 @@ app.get("/tasks", async (req, res) => {
         });
     }
 });
+
 
 // Get task by ID
 app.get("/tasks/:id", async (req, res) => {
@@ -232,6 +270,7 @@ app.get("/tasks/:id", async (req, res) => {
     }
 });
 
+
 // Create a new task
 app.post("/tasks", async (req, res) => {
     try {
@@ -262,6 +301,7 @@ app.post("/tasks", async (req, res) => {
         });
     }
 });
+
 
 // Update a task
 app.put("/tasks/:id", async (req, res) => {
@@ -321,6 +361,7 @@ app.put("/tasks/:id", async (req, res) => {
         });
     }
 });
+
 
 // Delete a task
 app.delete("/tasks/:id", async (req, res) => {
