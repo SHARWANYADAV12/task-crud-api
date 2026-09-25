@@ -16,6 +16,7 @@ const supabase = createClient(
 );
 
 app.use(express.json());
+
 // ==================== AUTH ROUTES ====================
 
 // Signup
@@ -77,6 +78,45 @@ app.post("/auth/login", async (req, res) => {
     });
 });
 
+
+// ==================== STAGE 2: PUBLIC + PROTECTED ROUTES ====================
+
+// Public route
+app.get("/public/info", (req, res) => {
+    res.status(200).json({
+        message: "This is a public route",
+        info: "No authentication is required"
+    });
+});
+
+
+// Protected route
+app.get("/protected/profile", (req, res) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            error: "Authorization token required"
+        });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({
+            error: "Authorization token required"
+        });
+    }
+
+    res.status(200).json({
+        message: "Token received",
+        token_present: true
+    });
+});
+
+
+// ==================== POSTGRESQL ====================
+
 // PostgreSQL connection
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL
@@ -114,6 +154,9 @@ async function initializeDatabase() {
 
     console.log("PostgreSQL database ready");
 }
+
+
+// ==================== TASK ROUTES ====================
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -299,14 +342,18 @@ app.delete("/tasks/:id", async (req, res) => {
     }
 });
 
-// Swagger UI
+
+// ==================== SWAGGER UI ====================
+
 app.use(
     "/docs",
     swaggerUi.serve,
     swaggerUi.setup(swaggerDocument)
 );
 
-// Start server after database initialization
+
+// ==================== START SERVER ====================
+
 initializeDatabase()
     .then(() => {
         app.listen(PORT, () => {
