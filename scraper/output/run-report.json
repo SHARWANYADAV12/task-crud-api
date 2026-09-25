@@ -1,0 +1,15 @@
+{
+  "start_time": "2026-09-25T20:14:05.266Z",
+  "duration_seconds": 1.43,
+  "pages_fetched": 0,
+  "cache_hits": 63,
+  "valid_records": 60,
+  "invalid_records": 0,
+  "failed_pages": [
+    {
+      "url": "https://books.toscrape.com/catalogue/this-book-does-not-exist-404-test/index.html",
+      "stage": "failure-test",
+      "error": "NON_RETRYABLE_HTTP_404"
+    }
+  ]
+}
