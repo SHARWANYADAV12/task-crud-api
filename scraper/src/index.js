@@ -2,10 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const cheerio = require("cheerio");
+const { z } = require("zod");
 
 const START_URL = "https://books.toscrape.com/catalogue/page-1.html";
 
 const CACHE_DIR = path.join(__dirname, "..", "cache");
+const OUTPUT_DIR = path.join(__dirname, "..", "output");
+
+const BOOKS_FILE = path.join(OUTPUT_DIR, "books.json");
+const ERRORS_FILE = path.join(OUTPUT_DIR, "errors.json");
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -151,11 +156,21 @@ function extractBookDetails(html, productUrl, sourcePage, fetchedAt) {
     const $ = cheerio.load(html);
 
     const title = $("div.product_main h1").text().trim() || null;
-    const priceText = $("div.product_main .price_color").text().trim() || null;
+
+    const priceText =
+        $("div.product_main .price_color").text().trim() || null;
+
     const availabilityText =
-        $("div.product_main .availability").text().replace(/\s+/g, " ").trim() || null;
+        $("div.product_main .availability")
+            .text()
+            .replace(/\s+/g, " ")
+            .trim() || null;
+
     const ratingText =
-        $("div.product_main .star-rating").attr("class")?.replace("star-rating", "").trim() || null;
+        $("div.product_main .star-rating")
+            .attr("class")
+            ?.replace("star-rating", "")
+            .trim() || null;
 
     let description = null;
 
@@ -177,12 +192,37 @@ function extractBookDetails(html, productUrl, sourcePage, fetchedAt) {
     };
 }
 
+function normalizePrice(priceText) {
+    if (!priceText) {
+        return null;
+    }
+
+    const cleaned = priceText.replace("£", "").trim();
+    const price = Number.parseFloat(cleaned);
+
+    return Number.isFinite(price) ? price : null;
+}
+
+const bookSchema = z.object({
+    title: z.string().min(1),
+    product_url: z.string().url(),
+    price_text: z.string().min(1),
+    price_gbp: z.number().nonnegative(),
+    availability_text: z.string().min(1),
+    rating_text: z.string().min(1),
+    description: z.string().nullable(),
+    source_page: z.string().url(),
+    fetched_at: z.string().datetime()
+});
+
 async function main() {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
     const books = await discoverBooks();
 
     console.log(`\nUnique book URLs discovered: ${books.length}`);
 
-    const records = [];
+    const rawRecords = [];
 
     for (let i = 0; i < books.length; i++) {
         const book = books[i];
@@ -198,17 +238,55 @@ async function main() {
             result.fetchedAt
         );
 
-        records.push(record);
+        rawRecords.push(record);
 
         if (!result.fromCache && i < books.length - 1) {
             await sleep(500);
         }
     }
 
-    console.log("\nFirst full raw record:");
-    console.log(JSON.stringify(records[0], null, 2));
+    const validRecords = [];
+    const errors = [];
 
-    console.log(`\ndetail_pages=${records.length}`);
+    for (const record of rawRecords) {
+        const normalizedRecord = {
+            ...record,
+            price_gbp: normalizePrice(record.price_text)
+        };
+
+        const result = bookSchema.safeParse(normalizedRecord);
+
+        if (result.success) {
+            validRecords.push(result.data);
+        } else {
+            errors.push({
+                record,
+                errors: result.error.issues
+            });
+        }
+    }
+
+    const uniqueRecords = Array.from(
+        new Map(
+            validRecords.map((record) => [record.product_url, record])
+        ).values()
+    );
+
+    fs.writeFileSync(
+        BOOKS_FILE,
+        JSON.stringify(uniqueRecords, null, 2)
+    );
+
+    fs.writeFileSync(
+        ERRORS_FILE,
+        JSON.stringify(errors, null, 2)
+    );
+
+    console.log("\nValidation complete.");
+    console.log(`Valid records: ${uniqueRecords.length}`);
+    console.log(`Invalid records: ${errors.length}`);
+    console.log(`Saved: ${BOOKS_FILE}`);
+    console.log(`Saved: ${ERRORS_FILE}`);
 }
 
 main().catch((error) => {

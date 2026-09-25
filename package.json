@@ -16,6 +16,7 @@
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "pg": "^8.23.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.6.5"
   }
 }
